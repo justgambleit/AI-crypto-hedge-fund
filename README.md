@@ -1,53 +1,95 @@
-# Crypto Hedge Fund (MVP)
+# AI Crypto Hedge Fund
 
-An AI agent-based system for automated cryptocurrency trading and risk
-management. Built incrementally across five levels, from a single-pair
-baseline to a dynamically rebalanced portfolio of 100+ pairs.
 
-## Setup
+An MVP of an AI-agent-based cryptocurrency trading and risk-management system,
+built as a take-home assignment. It pairs a conceptual design (presentation)
+with a reproducible research notebook that backtests five levels of increasing
+complexity — all out-of-sample and after costs.
 
-This project uses [uv](https://docs.astral.sh/uv/) for a reproducible
-environment.
+## Quick start
 
-```bash
-# 1. install uv (once)   macOS/Linux:
-curl -LsSf https://astral.sh/uv/install.sh | sh
-# 2. build the environment
-uv sync
-# 3. download historical data (once)
-uv run python scripts/download_data.py
-# 4. open the notebook
-uv run jupyter lab
-# (optional) lint and test
-uv run ruff check .
-uv run pytest
-```
+Requires [uv](https://docs.astral.sh/uv/). All data is already included in
+`data/`, so nothing needs to be downloaded to reproduce the results.
 
-## Architecture
+    uv sync                # create the environment from uv.lock
+    uv run jupyter lab     # open notebook.ipynb -> Kernel -> Restart & Run All
 
-Clean, layered design — each folder has one job:
+Data can be re-fetched (optional) via the helpers in `scripts/`.
 
-```
-src/chf/
-├── domain/        data structures shared across the system (models.py)
-├── data/          loading market data (loader.py)
-├── strategies/    the agents: base.py interface + concrete strategies
-│   ├── base.py            common Strategy interface
-│   └── moving_average.py  Level 1 baseline
-└── services/      the engine room
-    ├── backtest.py        runs a strategy, returns equity + metrics
-    └── metrics.py         ROI, Sharpe, max drawdown
-```
+## Project structure
 
-The single deliverable notebook imports from `chf` and walks through the five
-levels. The library stays modular; the notebook tells the story.
+    crypto-hedge-fund/
+    |- notebook.ipynb      # deliverable: 5 levels + bonuses, end-to-end
+    |- pyproject.toml      # pinned, reproducible environment (uv.lock)
+    |- data/               # all OHLCV data (6 core coins + 120-coin universe)
+    |- scripts/            # data download helpers (ccxt / Binance)
+    |- tests/              # pytest unit tests
+    `- src/chf/            # the `chf` package (modular, importable)
+       |- features.py          # ML features & target (look-ahead free)
+       |-
+cd /Users/alex/Desktop/files/crypto-hedge-fund
+cat > README.md << 'MD_EOF'
+# AI Crypto Hedge Fund
 
-## Reproducibility
 
-Clone -> `uv sync` -> run the notebook top to bottom. `uv.lock` pins exact
-versions; the committed data makes results deterministic.
+An MVP of an AI-agent-based cryptocurrency trading and risk-management system,
+built as a take-home assignment. It pairs a conceptual design (presentation)
+with a reproducible research notebook that backtests five levels of increasing
+complexity — all out-of-sample and after costs.
 
-## Live trading
+## Quick start
 
-Backtesting needs no API keys. For future live mode, copy `.env.example` to
-`.env` and fill it in. `.env` is git-ignored and must never be committed.
+Requires [uv](https://docs.astral.sh/uv/). All data is already included in
+`data/`, so nothing needs to be downloaded to reproduce the results.
+
+    uv sync                # create the environment from uv.lock
+    uv run jupyter lab     # open notebook.ipynb -> Kernel -> Restart & Run All
+
+Data can be re-fetched (optional) via the helpers in `scripts/`.
+
+## Project structure
+
+    crypto-hedge-fund/
+    |- notebook.ipynb      # deliverable: 5 levels + bonuses, end-to-end
+    |- pyproject.toml      # pinned, reproducible environment (uv.lock)
+    |- data/               # all OHLCV data (6 core coins + 120-coin universe)
+    |- scripts/            # data download helpers (ccxt / Binance)
+    |- tests/              # pytest unit tests
+    `- src/chf/            # the `chf` package (modular, importable)
+       |- features.py          # ML features & target (look-ahead free)
+       |- strategies/          # base.py, moving_average.py, ml.py, indicators.py
+       `- services/            # backtest, metrics, portfolio, rebalancing,
+                               #   universe, sizing
+
+A GARCH(1,1) econometric agent is defined in the notebook (Level 2).
+
+## The five levels
+
+1. **Baseline** — MA crossover on BTC. Cuts drawdown but trails buy & hold on return.
+2. **Econometrics + ML + agents** — GARCH(1,1), RandomForest and rule-based agents
+   compared. ML shows no out-of-sample edge; the econometric vol-filter modestly
+   beats passive holding; the simplest rule wins.
+3. **Portfolio (static)** — 6 coins, Markowitz vs equal weight. Equal weight (1/N)
+   +33.7% beat max-Sharpe -43.8% out-of-sample (DeMiguel, 2009).
+4. **Dynamic rebalancing** — walk-forward weights; monthly rebalancing optimal by Sharpe.
+5. **Large universe** — 120 coins, point-in-time momentum + a risk agent.
+   Underperforms BTC out-of-sample; the risk agent sat out the FTX collapse (0% vs -16%).
+
+Bonuses: position sizing (fractional Kelly gave the best risk-adjusted return) and a
+classical-indicator comparison.
+
+## Methodology & honesty
+
+- **Out-of-sample only** — chronological train/test split; metrics on the test period.
+- **No look-ahead** — signals executed with a one-bar lag; trailing features only.
+  A one-bar look-ahead bug in the universe backtester was found and fixed.
+- **Robustness** — time-series cross-validation (5 expanding folds) for the ML agent;
+  transaction-cost sensitivity up to 0.4%; crisis stress-tests (LUNA, FTX, Oct-2025).
+- **No survivorship bias** — point-in-time coin selection in the large universe.
+- **Reproducible** — pinned environment, all data included, single self-contained notebook.
+
+## Key takeaway
+
+Across every level, added complexity did not pay: simple, risk-aware approaches beat
+optimization and machine learning out-of-sample. The defensible edge is disciplined
+risk management and honest validation.
